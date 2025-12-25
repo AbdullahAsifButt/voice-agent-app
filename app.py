@@ -52,11 +52,27 @@ async def generate_audio(text, output_file="response.mp3"):
 
 
 # --- MAIN APP UI ---
-def main():
-    st.title("🎙️ Free Real-Time Voice Agent")
+# ... (Keep imports and helper functions the same) ...
 
-    # New Streamlit Audio Input Widget
-    audio_value = st.audio_input("Record your voice")
+
+# --- MAIN APP UI ---
+def main():
+    st.title("Real-Time Voice Agent")
+
+    # 1. Session State Setup (The "Memory" Fix)
+    # We create a counter to track the widget's ID
+    if "voice_key" not in st.session_state:
+        st.session_state.voice_key = 0
+
+    # 2. Callback function to reset the key
+    def reset_audio():
+        st.session_state.voice_key += 1
+
+    # 3. The Audio Input Widget
+    # NOTICE the 'key' argument. It changes every time we click reset.
+    audio_value = st.audio_input(
+        "Record your voice", key=f"audio_recorder_{st.session_state.voice_key}"
+    )
 
     if audio_value:
         st.success("Audio captured!")
@@ -72,16 +88,19 @@ def main():
                 response_text = get_ai_response(user_text)
                 st.write(f"**AI:** {response_text}")
 
-            # Step 3: Speak (Using Free Edge-TTS)
+            # Step 3: Speak
             with st.spinner("Generating Voice..."):
-                # Run async function in sync Streamlit
                 import nest_asyncio
 
                 nest_asyncio.apply()
                 asyncio.run(generate_audio(response_text, "response.mp3"))
 
-                # Play the result in the browser
+                # Auto-play audio
                 st.audio("response.mp3", format="audio/mp3", autoplay=True)
+
+            # 4. THE FIX: A Button to Clear
+            # When clicked, this runs 'reset_audio', increments the key, and reloads the page.
+            st.button("🎤 Click to Record Again", on_click=reset_audio)
 
 
 if __name__ == "__main__":
